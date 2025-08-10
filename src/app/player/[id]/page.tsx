@@ -24,13 +24,13 @@ export async function generateMetadata({ params }: PlayerPageProps) {
   
   if (!player) {
     return {
-      title: '播放器未找到',
+      title: 'Player Not Found',
     };
   }
 
   return {
-    title: `${player.name} - 在线播放平台`,
-    description: player.description || `观看 ${player.name}`,
+    title: `${player.name}`,
+    description: player.description || `watch ${player.name}`,
   };
 }
 

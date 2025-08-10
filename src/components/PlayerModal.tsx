@@ -66,7 +66,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">
-              {player ? '编辑播放器' : '创建播放器'}
+              {player ? 'Edit Player' : 'Create Player'}
             </h2>
             <button
               onClick={onClose}
@@ -81,7 +81,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                播放器名称 *
+                Player Name *
               </label>
               <input
                 type="text"
@@ -91,13 +91,13 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 value={formData.name}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="请输入播放器名称"
+                placeholder="Enter player name"
               />
             </div>
 
             <div>
               <label htmlFor="pId" className="block text-sm font-medium text-gray-700 mb-1">
-                播放器 ID *
+                Player ID *
               </label>
               <input
                 type="text"
@@ -107,13 +107,13 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 value={formData.pId}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="请输入唯一的播放器ID"
+                placeholder="Enter unique player ID"
               />
             </div>
 
             <div>
               <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                播放 URL *
+                Player URL *
               </label>
               <input
                 type="url"
@@ -129,7 +129,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
 
             <div>
               <label htmlFor="coverUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                封面图片 URL
+                Cover Image URL
               </label>
               <input
                 type="url"
@@ -144,7 +144,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                描述
+                Description
               </label>
               <textarea
                 id="description"
@@ -153,13 +153,13 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 value={formData.description}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="请输入播放器描述"
+                placeholder="Enter player description"
               />
             </div>
 
             <div>
               <label htmlFor="announcement" className="block text-sm font-medium text-gray-700 mb-1">
-                公告
+                Announcement
               </label>
               <textarea
                 id="announcement"
@@ -168,7 +168,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 value={formData.announcement}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="请输入公告信息"
+                placeholder="Enter announcement"
               />
             </div>
 
@@ -178,14 +178,14 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 onClick={onClose}
                 className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
               >
-                取消
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? '保存中...' : (player ? '更新' : '创建')}
+                {loading ? 'Saving...' : (player ? 'Update' : 'Create')}
               </button>
             </div>
           </form>

@@ -6,6 +6,7 @@ import type { Player } from '@/lib/db';
 import Artplayer from "artplayer";
 import type { Option } from "artplayer/types/option";
 import Hls from "hls.js";
+import artplayerPluginHlsControl from 'artplayer-plugin-hls-control';
 
 function _Artplayer({
   option,
@@ -54,6 +55,29 @@ function _Artplayer({
       customType: {
         m3u8: playM3u8,
       },
+      plugins: [
+        artplayerPluginHlsControl({
+          quality: {
+            control: true,
+            setting: true,
+            getName: (level: any) => level.height + 'P',
+            // I18n
+            title: 'Quality',
+            auto: 'Auto',
+          },
+          audio: {
+              // Show audios in control
+              control: true,
+              // Show audios in setting
+              setting: true,
+              // Get the audio name from track
+              getName: (track: any) => track.name,
+              // I18n
+              title: 'Audio',
+              auto: 'Auto',
+          }
+        })
+      ]
     });
     
     if (getInstance && typeof getInstance === "function") {
@@ -61,7 +85,9 @@ function _Artplayer({
     }
 
     return () => {
+      console.log('destroy outside')
       if (art && art.destroy) {
+        console.log('destroy inside')
         art.destroy(false);
       }
     };
@@ -118,7 +144,7 @@ export default function PlayerComponent({ player }: PlayerProps) {
               href="/" 
               className="text-blue-400 hover:text-blue-300 transition-colors"
             >
-              ← 返回首页
+              ← Home
             </Link>
             <h1 className="text-xl font-bold">{player.name}</h1>
           </div>

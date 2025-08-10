@@ -14,6 +14,9 @@ importers:
       artplayer:
         specifier: ^5.2.5
         version: 5.2.5
+      artplayer-plugin-hls-control:
+        specifier: ^1.0.1
+        version: 1.0.1
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
@@ -1969,6 +1972,9 @@ packages:
   arraybuffer.prototype.slice@1.0.4:
     resolution: {integrity: sha512-BNoCY6SXXPQ7gF2opIP4GBE+Xw7U+pHMYKuzjgCN3GwiaIR09UUeKfheyIry77QtrCBlC0KK0q5/TER/tYh3PQ==}
     engines: {node: '>= 0.4'}
+
+  artplayer-plugin-hls-control@1.0.1:
+    resolution: {integrity: sha512-rbOeH/mzqgZuosOtxJ9NERil6siOLd9K7nsCRWARrSyT+zH3xdDo0WunYgDQiATniNySicxZ//ex/pPLxYECUg==}
 
   artplayer@5.2.5:
     resolution: {integrity: sha512-Ogym5rvkAJ4VLncM4Apl3TJ/a/ozM3csvY4IKuuMR++hUmEZgj/HaGsNonwx8r56nsqiZYE7O4vS1HFZl+NBSg==}
@@ -6608,6 +6614,8 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       is-array-buffer: 3.0.5
+
+  artplayer-plugin-hls-control@1.0.1: {}
 
   artplayer@5.2.5:
     dependencies:

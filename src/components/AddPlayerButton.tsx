@@ -32,7 +32,7 @@ export default function AddPlayerButton({ onClick, variant = 'normal' }: AddPlay
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </div>
-          <span className="text-sm font-medium">添加播放器</span>
+          <span className="text-sm font-medium">Add Player</span>
         </div>
       </div>
     );
@@ -51,7 +51,7 @@ export default function AddPlayerButton({ onClick, variant = 'normal' }: AddPlay
       >
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
       </svg>
-      添加播放器
+      Add Player
     </button>
   );
 }

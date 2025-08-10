@@ -16,7 +16,6 @@ export default function Home() {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
-  const router = useRouter();
 
   const fetchPlayers = async () => {
     try {
@@ -57,11 +56,11 @@ export default function Home() {
         setPlayers(prev => prev.filter(p => p.id !== player.id));
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || '删除失败');
+        alert((error as { error: string }).error || 'Delete failed');
       }
     } catch (error) {
       console.error('Error deleting player:', error);
-      alert('删除失败');
+      alert('Delete failed');
     }
   };
 
@@ -95,11 +94,11 @@ export default function Home() {
         setEditingPlayer(null);
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || (isEditing ? '更新失败' : '创建失败'));
+        alert((error as { error: string }).error || (isEditing ? 'Update failed' : 'Create failed'));
       }
     } catch (error) {
       console.error('Error submitting player:', error);
-      alert(editingPlayer ? '更新失败' : '创建失败');
+      alert(editingPlayer ? 'Update failed' : 'Create failed');
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +109,7 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">加载中...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -121,11 +120,8 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            在线播放平台
+            楽しみましょう
           </h1>
-          <p className="text-lg text-gray-600 mb-6">
-            选择您想要观看的播放列表
-          </p>
           <AdminControls />
           {user?.role === 'admin' && (
             <div className="flex justify-center mb-8">
@@ -136,7 +132,7 @@ export default function Home() {
 
         {players.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg mb-4">暂无播放列表</p>
+            <p className="text-gray-500 text-lg mb-4">No players found</p>
             {user?.role === 'admin' && (
               <AddPlayerButton onClick={handleAddPlayer} />
             )}

@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     
     if (!user || user.role !== 'admin') {
       return NextResponse.json(
-        { error: '权限不足' },
+        { error: 'Permission denied' },
         { status: 403 }
       );
     }
@@ -20,14 +20,14 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
     if (isNaN(playerId)) {
       return NextResponse.json(
-        { error: '无效的播放器 ID' },
+        { error: 'Invalid Player ID' },
         { status: 400 }
       );
     }
 
     if (!name || !pId || !url) {
       return NextResponse.json(
-        { error: '名称、ID 和 URL 不能为空' },
+        { error: 'Name, ID and URL are required' },
         { status: 400 }
       );
     }
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
     if (existingPlayer.length > 0) {
       return NextResponse.json(
-        { error: '播放器 ID 已存在' },
+        { error: 'Player ID already exists' },
         { status: 400 }
       );
     }
@@ -64,7 +64,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
   } catch (error) {
     console.error('Error updating player:', error);
     return NextResponse.json(
-      { error: '更新播放器失败' },
+      { error: 'Failed to update player' },
       { status: 500 }
     );
   }
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     
     if (!user || user.role !== 'admin') {
       return NextResponse.json(
-        { error: '权限不足' },
+        { error: 'Permission denied' },
         { status: 403 }
       );
     }
@@ -86,7 +86,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
 
     if (isNaN(playerId)) {
       return NextResponse.json(
-        { error: '无效的播放器 ID' },
+        { error: 'Invalid Player ID' },
         { status: 400 }
       );
     }
@@ -94,11 +94,11 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     const db = getDb();
     await db.delete(players).where(eq(players.id, playerId));
 
-    return NextResponse.json({ message: '播放器删除成功' });
+    return NextResponse.json({ message: 'Player deleted successfully' });
   } catch (error) {
     console.error('Error deleting player:', error);
     return NextResponse.json(
-      { error: '删除播放器失败' },
+      { error: 'Failed to delete player' },
       { status: 500 }
     );
   }

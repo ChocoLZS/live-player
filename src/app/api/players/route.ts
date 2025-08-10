@@ -11,7 +11,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching players:', error);
     return NextResponse.json(
-      { error: '获取播放器列表失败' },
+      { error: 'Failed to fetch player list' },
       { status: 500 }
     );
   }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     
     if (!user || user.role !== 'admin') {
       return NextResponse.json(
-        { error: '权限不足' },
+        { error: 'Permission denied' },
         { status: 403 }
       );
     }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     if (!name || !pId || !url) {
       return NextResponse.json(
-        { error: '名称、ID 和 URL 不能为空' },
+        { error: 'Name, ID and URL are required' },
         { status: 400 }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPlayer.length > 0) {
       return NextResponse.json(
-        { error: '播放器 ID 已存在' },
+        { error: 'Player ID already exists' },
         { status: 400 }
       );
     }
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating player:', error);
     return NextResponse.json(
-      { error: '创建播放器失败' },
+      { error: 'Failed to create player' },
       { status: 500 }
     );
   }
