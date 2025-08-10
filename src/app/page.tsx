@@ -1,78 +1,173 @@
-import Link from 'next/link';
-import { prisma } from '@/lib/db';
+'use client';
 
-async function getPlayers() {
-  try {
-    const players = await prisma.player.findMany({
-      orderBy: { updatedAt: 'desc' }
-    });
-    return players;
-  } catch (error) {
-    console.error('Error fetching players:', error);
-    return [];
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import AdminControls from '@/components/AdminControls';
+import AddPlayerButton from '@/components/AddPlayerButton';
+import PlayerCard from '@/components/PlayerCard';
+import PlayerModal from '@/components/PlayerModal';
+import { useAuth } from '@/middleware/WithAuth';
+import type { Player } from '@/lib/db';
+
+export default function Home() {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const fetchPlayers = async () => {
+    try {
+      const response = await fetch('/api/players');
+      if (response.ok) {
+        const data = await response.json();
+        setPlayers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching players:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlayers();
+  }, []);
+
+  const handleAddPlayer = () => {
+    setEditingPlayer(null);
+    setModalOpen(true);
+  };
+
+  const handleEditPlayer = (player: Player) => {
+    setEditingPlayer(player);
+    setModalOpen(true);
+  };
+
+  const handleDeletePlayer = async (player: Player) => {
+    try {
+      const response = await fetch(`/api/players/${player.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setPlayers(prev => prev.filter(p => p.id !== player.id));
+      } else {
+        const error = await response.json();
+        alert(error.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      alert('删除失败');
+    }
+  };
+
+  const handleSubmitPlayer = async (playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) => {
+    setSubmitting(true);
+    
+    try {
+      const isEditing = !!editingPlayer;
+      const url = isEditing ? `/api/players/${editingPlayer.id}` : '/api/players';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(playerData)
+      });
+
+      if (response.ok) {
+        const savedPlayer = await response.json();
+        
+        if (isEditing) {
+          setPlayers(prev => prev.map(p => p.id === editingPlayer.id ? savedPlayer : p));
+        } else {
+          setPlayers(prev => [savedPlayer, ...prev]);
+        }
+        
+        setModalOpen(false);
+        setEditingPlayer(null);
+      } else {
+        const error = await response.json();
+        alert(error.error || (isEditing ? '更新失败' : '创建失败'));
+      }
+    } catch (error) {
+      console.error('Error submitting player:', error);
+      alert(editingPlayer ? '更新失败' : '创建失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">加载中...</p>
+        </div>
+      </div>
+    );
   }
-}
-
-export default async function Home() {
-  const players = await getPlayers();
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             在线播放平台
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 mb-6">
             选择您想要观看的播放列表
           </p>
+          <AdminControls />
+          {user?.role === 'admin' && (
+            <div className="flex justify-center mb-8">
+              <AddPlayerButton onClick={handleAddPlayer} />
+            </div>
+          )}
         </div>
 
         {players.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">暂无播放列表</p>
+            <p className="text-gray-500 text-lg mb-4">暂无播放列表</p>
+            {user?.role === 'admin' && (
+              <AddPlayerButton onClick={handleAddPlayer} />
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {players.map((player) => (
-              <Link
+              <PlayerCard
                 key={player.id}
-                href={`/player/${player.pId}`}
-                className="group"
-              >
-                <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  {player.coverUrl && (
-                    <div className="aspect-w-16 aspect-h-9">
-                      <img
-                        src={player.coverUrl}
-                        alt={player.name}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-blue-600">
-                      {player.name}
-                    </h3>
-                    {player.description && (
-                      <p className="text-gray-600 text-sm line-clamp-2">
-                        {player.description}
-                      </p>
-                    )}
-                    {player.announcement && (
-                      <div className="mt-3 p-2 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                        <p className="text-yellow-800 text-xs">
-                          {player.announcement}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
+                player={player}
+                onEdit={handleEditPlayer}
+                onDelete={handleDeletePlayer}
+              />
             ))}
+            {user?.role === 'admin' && (
+              <AddPlayerButton onClick={handleAddPlayer} variant="card" />
+            )}
           </div>
         )}
       </div>
+
+      <PlayerModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingPlayer(null);
+        }}
+        onSubmit={handleSubmitPlayer}
+        player={editingPlayer}
+        loading={submitting}
+      />
     </div>
   );
 }
