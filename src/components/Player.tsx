@@ -1,86 +1,113 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import type { Player } from '@/lib/db';
+import Artplayer from "artplayer";
+import type { Option } from "artplayer/types/option";
+import Hls from "hls.js";
+
+function _Artplayer({
+  option,
+  getInstance,
+  ...rest
+}: {
+  option: Omit<Option, "container">;
+  getInstance?: (art: Artplayer) => void;
+} & React.HTMLAttributes<HTMLDivElement>) {
+  const artRef = useRef<HTMLDivElement | null>(null);
+  
+  const playM3u8 = useCallback(
+    (video: HTMLVideoElement, url: string, art: Artplayer) => {
+      if (Hls.isSupported()) {
+        if (art.hls) art.hls.destroy();
+        const originUrlObj = new URL(url);
+        const queryParms = originUrlObj.searchParams;
+        const hls = new Hls({
+          xhrSetup(xhr, tsUrl) {
+            if (tsUrl.includes(".ts") || tsUrl.endsWith(".m3u8")) {
+              const tsUrlObj = new URL(tsUrl);
+              queryParms.forEach((value, key) => {
+                tsUrlObj.searchParams.set(key, value);
+              });
+              xhr.open("GET", tsUrlObj.toString(), true);
+            }
+          },
+        });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        art.hls = hls;
+        art.on("destroy", () => hls.destroy());
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = url;
+      } else {
+        art.notice.show = "Unsupported playback format: m3u8";
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const art = new Artplayer({
+      ...option,
+      container: artRef.current || "",
+      customType: {
+        m3u8: playM3u8,
+      },
+    });
+    
+    if (getInstance && typeof getInstance === "function") {
+      getInstance(art);
+    }
+
+    return () => {
+      if (art && art.destroy) {
+        art.destroy(false);
+      }
+    };
+  }, []);
+
+  return <div ref={artRef} {...rest}></div>;
+}
 
 interface PlayerProps {
   player: Player;
 }
 
-declare global {
-  interface Window {
-    Artplayer: any;
-  }
-}
-
 export default function PlayerComponent({ player }: PlayerProps) {
-  const artRef = useRef<HTMLDivElement>(null);
   const artPlayerRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (!artRef.current) return;
-
-    const loadArtPlayer = async () => {
-      if (!window.Artplayer) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/artplayer@5.2.5/dist/artplayer.min.js';
-        script.onload = () => initPlayer();
-        document.head.appendChild(script);
-      } else {
-        initPlayer();
-      }
-    };
-
-    const initPlayer = () => {
-      if (artPlayerRef.current) {
-        artPlayerRef.current.destroy();
-      }
-
-      artPlayerRef.current = new window.Artplayer({
-        container: artRef.current,
-        url: player.url,
-        title: player.name,
-        poster: player.coverUrl || undefined,
-        volume: 0.7,
-        isLive: true,
-        muted: false,
-        autoplay: false,
-        pip: true,
-        autoSize: true,
-        autoMini: true,
-        screenshot: true,
-        setting: true,
-        loop: true,
-        flip: true,
-        playbackRate: true,
-        aspectRatio: true,
-        fullscreen: true,
-        fullscreenWeb: true,
-        subtitleOffset: true,
-        miniProgressBar: true,
-        mutex: true,
-        backdrop: true,
-        playsInline: true,
-        autoPlayback: true,
-        airplay: true,
-        theme: '#00d4ff',
-        lang: 'zh-cn',
-        moreVideoAttr: {
-          crossOrigin: 'anonymous',
-        },
-      });
-    };
-
-    loadArtPlayer();
-
-    return () => {
-      if (artPlayerRef.current) {
-        artPlayerRef.current.destroy();
-        artPlayerRef.current = null;
-      }
-    };
-  }, [player]);
+  const playerOption: Omit<Option, "container"> = {
+    url: player.url,
+    poster: player.coverUrl || '',
+    volume: 0.7,
+    isLive: true,
+    muted: false,
+    autoplay: false,
+    pip: true,
+    autoSize: true,
+    autoMini: true,
+    screenshot: true,
+    setting: true,
+    loop: true,
+    flip: true,
+    playbackRate: true,
+    aspectRatio: true,
+    fullscreen: true,
+    fullscreenWeb: true,
+    subtitleOffset: true,
+    miniProgressBar: true,
+    mutex: true,
+    backdrop: true,
+    playsInline: true,
+    autoPlayback: true,
+    airplay: true,
+    theme: '#00d4ff',
+    lang: 'zh-cn',
+    moreVideoAttr: {
+      crossOrigin: 'anonymous',
+    },
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -102,9 +129,12 @@ export default function PlayerComponent({ player }: PlayerProps) {
       </header>
 
       <div className="flex-1 bg-black">
-        <div 
-          ref={artRef} 
-          className="w-full h-full"
+        <_Artplayer
+          option={playerOption}
+          getInstance={(art) => {
+            artPlayerRef.current = art;
+          }}
+          className="w-full h-full flex"
           style={{ minHeight: '400px' }}
         />
       </div>
