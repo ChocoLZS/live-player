@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 
-interface RouteParams {
-  params: { id: string };
-}
-
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     
@@ -17,7 +13,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { name, pId, description, url, coverUrl, announcement } = await request.json();
+    const { name, pId, description, url, coverUrl, announcement } = await request.json() as any;
+    const params = await context.params;
     const playerId = parseInt(params.id);
 
     if (isNaN(playerId)) {
@@ -34,7 +31,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const existingPlayer = await prisma.player.findFirst({
+    const existingPlayer = await getDb().player.findFirst({
       where: {
         pId,
         NOT: { id: playerId }
@@ -48,7 +45,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const player = await prisma.player.update({
+    const player = await getDb().player.update({
       where: { id: playerId },
       data: {
         name,
@@ -70,7 +67,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser();
     
@@ -81,6 +78,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const params = await context.params;
     const playerId = parseInt(params.id);
 
     if (isNaN(playerId)) {
@@ -90,7 +88,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await prisma.player.delete({
+    await getDb().player.delete({
       where: { id: playerId }
     });
 

@@ -1,12 +1,8 @@
-import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
-
-setupDevPlatform().catch(console.error);
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', '@prisma/adapter-d1']
+    serverComponentsExternalPackages: ['@prisma/client', "./prisma/client", '@prisma/adapter-d1']
   },
   images: {
     remotePatterns: [
@@ -23,3 +19,6 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();

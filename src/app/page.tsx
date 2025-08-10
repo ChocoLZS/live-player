@@ -22,7 +22,7 @@ export default function Home() {
     try {
       const response = await fetch('/api/players');
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as Player[];
         setPlayers(data);
       }
     } catch (error) {
@@ -57,7 +57,7 @@ export default function Home() {
         setPlayers(prev => prev.filter(p => p.id !== player.id));
       } else {
         const error = await response.json();
-        alert(error.error || '删除失败');
+        alert((error as { error: string }).error || '删除失败');
       }
     } catch (error) {
       console.error('Error deleting player:', error);
@@ -83,7 +83,7 @@ export default function Home() {
       });
 
       if (response.ok) {
-        const savedPlayer = await response.json();
+        const savedPlayer = await response.json() as Player;
         
         if (isEditing) {
           setPlayers(prev => prev.map(p => p.id === editingPlayer.id ? savedPlayer : p));
@@ -95,7 +95,7 @@ export default function Home() {
         setEditingPlayer(null);
       } else {
         const error = await response.json();
-        alert(error.error || (isEditing ? '更新失败' : '创建失败'));
+        alert((error as { error: string }).error || (isEditing ? '更新失败' : '创建失败'));
       }
     } catch (error) {
       console.error('Error submitting player:', error);

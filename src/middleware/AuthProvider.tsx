@@ -32,7 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       
       if (response.ok) {
-        const userData = await response.json();
+        const userData = await response.json() as User;
         setUser(userData);
       } else {
         setUser({ username: 'guest', role: 'user' });
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       if (response.ok) {
-        const userData = await response.json();
+        const userData = await response.json() as User;
         setUser(userData);
         return true;
       }
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Logout failed:', error);
     }
     
-    setUser({ id: 0, username: 'guest', role: 'user' });
+    setUser({ username: 'guest', role: 'user' });
   };
 
   const refreshUser = async () => {

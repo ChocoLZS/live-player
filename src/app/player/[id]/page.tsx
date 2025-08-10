@@ -1,14 +1,14 @@
 import { notFound } from 'next/navigation';
-import { prisma } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import PlayerComponent from '@/components/Player';
 
 interface PlayerPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function getPlayer(pId: string) {
   try {
-    const player = await prisma.player.findUnique({
+    const player = await getDb().player.findUnique({
       where: { pId }
     });
     return player;
@@ -19,7 +19,8 @@ async function getPlayer(pId: string) {
 }
 
 export async function generateMetadata({ params }: PlayerPageProps) {
-  const player = await getPlayer(params.id);
+  const resolvedParams = await params;
+  const player = await getPlayer(resolvedParams.id);
   
   if (!player) {
     return {
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: PlayerPageProps) {
 }
 
 export default async function PlayerPage({ params }: PlayerPageProps) {
-  const player = await getPlayer(params.id);
+  const resolvedParams = await params;
+  const player = await getPlayer(resolvedParams.id);
 
   if (!player) {
     notFound();

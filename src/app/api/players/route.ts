@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const players = await prisma.player.findMany({
+    const players = await getDb().player.findMany({
       orderBy: { updatedAt: 'desc' }
     });
     return NextResponse.json(players);
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, pId, description, url, coverUrl, announcement } = await request.json();
+    const { name, pId, description, url, coverUrl, announcement } = await request.json() as any;
 
     if (!name || !pId || !url) {
       return NextResponse.json(
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingPlayer = await prisma.player.findUnique({
+    const existingPlayer = await getDb().player.findUnique({
       where: { pId }
     });
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const player = await prisma.player.create({
+    const player = await getDb().player.create({
       data: {
         name,
         pId,
