@@ -12,16 +12,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  @@map("users")
-}
-
 model Player {
   id           Int      @id @default(autoincrement())
   name         String
@@ -34,9 +24,4 @@ model Player {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("players")
-}
-
-enum Role {
-  admin
-  user
 }
