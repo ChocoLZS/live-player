@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getDb, players } from '@/lib/db';
 import PlayerComponent from '@/components/Player';
+import { eq } from 'drizzle-orm';
 
 interface PlayerPageProps {
   params: Promise<{ id: string }>;
@@ -8,10 +9,9 @@ interface PlayerPageProps {
 
 async function getPlayer(pId: string) {
   try {
-    const player = await getDb().player.findUnique({
-      where: { pId }
-    });
-    return player;
+    const db = getDb();
+    const [player] = await db.select().from(players).where(eq(players.pId, pId)).limit(1);
+    return player || null;
   } catch (error) {
     console.error('Error fetching player:', error);
     return null;

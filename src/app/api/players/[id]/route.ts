@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, players } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { eq, and, ne } from 'drizzle-orm';
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -31,31 +32,33 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       );
     }
 
-    const existingPlayer = await getDb().player.findFirst({
-      where: {
-        pId,
-        NOT: { id: playerId }
-      }
-    });
+    const db = getDb();
+    
+    // Check if another player with the same pId exists (excluding current player)
+    const existingPlayer = await db.select()
+      .from(players)
+      .where(and(eq(players.pId, pId), ne(players.id, playerId)))
+      .limit(1);
 
-    if (existingPlayer) {
+    if (existingPlayer.length > 0) {
       return NextResponse.json(
         { error: '播放器 ID 已存在' },
         { status: 400 }
       );
     }
 
-    const player = await getDb().player.update({
-      where: { id: playerId },
-      data: {
+    const [player] = await db.update(players)
+      .set({
         name,
         pId,
         description: description || null,
         url,
         coverUrl: coverUrl || null,
-        announcement: announcement || null
-      }
-    });
+        announcement: announcement || null,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(players.id, playerId))
+      .returning();
 
     return NextResponse.json(player);
   } catch (error) {
@@ -88,9 +91,8 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       );
     }
 
-    await getDb().player.delete({
-      where: { id: playerId }
-    });
+    const db = getDb();
+    await db.delete(players).where(eq(players.id, playerId));
 
     return NextResponse.json({ message: '播放器删除成功' });
   } catch (error) {

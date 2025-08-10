@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, players } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { desc, eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const players = await getDb().player.findMany({
-      orderBy: { updatedAt: 'desc' }
-    });
-    return NextResponse.json(players);
+    const db = getDb();
+    const playerList = await db.select().from(players).orderBy(desc(players.updatedAt));
+    return NextResponse.json(playerList);
   } catch (error) {
     console.error('Error fetching players:', error);
     return NextResponse.json(
@@ -37,27 +37,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingPlayer = await getDb().player.findUnique({
-      where: { pId }
-    });
+    const db = getDb();
+    
+    // Check if player with pId already exists
+    const existingPlayer = await db.select().from(players).where(eq(players.pId, pId)).limit(1);
 
-    if (existingPlayer) {
+    if (existingPlayer.length > 0) {
       return NextResponse.json(
         { error: '播放器 ID 已存在' },
         { status: 400 }
       );
     }
 
-    const player = await getDb().player.create({
-      data: {
-        name,
-        pId,
-        description: description || null,
-        url,
-        coverUrl: coverUrl || null,
-        announcement: announcement || null
-      }
-    });
+    const [player] = await db.insert(players).values({
+      name,
+      pId,
+      description: description || null,
+      url,
+      coverUrl: coverUrl || null,
+      announcement: announcement || null,
+      updatedAt: new Date().toISOString()
+    }).returning();
 
     return NextResponse.json(player);
   } catch (error) {

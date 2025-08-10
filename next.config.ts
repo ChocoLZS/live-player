@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', "./prisma/client", '@prisma/adapter-d1']
+    serverComponentsExternalPackages: ['drizzle-orm', 'drizzle-kit']
   },
   images: {
     remotePatterns: [
