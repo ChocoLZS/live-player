@@ -6,22 +6,42 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pages:build": "@cloudflare/next-on-pages",
+    "pages:deploy": "wrangler pages deploy",
+    "pages:watch": "wrangler pages dev",
+    "db:init": "wrangler d1 execute live-player --file=./schema.sql",
+    "db:init:dev": "wrangler d1 execute live-player --file=./schema.sql --env=development --local",
+    "db:init:local": "sqlite3 ./prisma/dev.db < ./schema.sql",
+    "db:generate": "prisma generate",
+    "db:migrate": "wrangler d1 migrations apply live-player --local",
+    "db:migrate:prod": "wrangler d1 migrations apply live-player --remote",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@cloudflare/next-on-pages": "^1.13.13",
+    "@cloudflare/workers-types": "^4.20250810.0",
+    "@prisma/adapter-d1": "^6.13.0",
+    "@prisma/client": "^6.13.0",
+    "artplayer": "^5.2.5",
+    "next": "15.3.5",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.3.5"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
-    "@eslint/eslintrc": "^3"
+    "prisma": "^6.13.0",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wrangler": "^4.28.1"
   }
 }
