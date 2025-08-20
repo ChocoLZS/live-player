@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import type { Player, PlayerWithImageUrl } from '@/lib/db';
 import { captureCoverImage, captureMultipleFrames, type CoverFrame } from '@/lib/videoCapture';
 import CoverSelector from './CoverSelector';
@@ -448,11 +449,15 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                           <div className="text-sm text-gray-700">
                             {previewImage ? 'Capture Preview:' : 'Current Cover:'}
                           </div>
-                          <img 
-                            src={displayImage} 
-                            alt={previewImage ? 'Cover preview' : 'Current cover'} 
-                            className="w-full max-w-xs h-auto border rounded-md"
-                          />
+                          <div className="relative w-full max-w-xs border rounded-md overflow-hidden">
+                            <Image 
+                              src={displayImage} 
+                              alt={previewImage ? 'Cover preview' : 'Current cover'} 
+                              width={320}
+                              height={180}
+                              className="w-full h-auto"
+                            />
+                          </div>
                           {previewImage && (
                             <button
                               type="button"
