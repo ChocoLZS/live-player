@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, players } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
+import { uploadImageToR2, generateCoverImageKey, getR2PublicUrl } from '@/lib/r2';
+import { cache, CACHE_KEYS } from '@/lib/cache';
 
 async function captureVideoFrame(hlsUrl: string): Promise<Uint8Array> {
   try {
@@ -120,18 +122,29 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       // Capture frame from video URL
       const imageData = await captureVideoFrame(player.url);
 
-      // Update player with captured image
+      // Generate R2 key and upload to R2
+      const r2Key = generateCoverImageKey(player.pId);
+      await uploadImageToR2(r2Key, imageData, 'image/png');
+
+      // Update player with R2 key
       const [updatedPlayer] = await db.update(players)
         .set({
-          coverImage: imageData,
+          coverImageR2Key: r2Key,
           updatedAt: new Date().toISOString()
         })
         .where(eq(players.id, playerId))
         .returning();
 
+      // Clear cache
+      cache.delete(CACHE_KEYS.PLAYER_LIST);
+      cache.delete(CACHE_KEYS.PLAYER(player.pId));
+
+      const coverImageUrl = getR2PublicUrl(r2Key);
+
       return NextResponse.json({ 
         message: 'Cover image auto-captured successfully',
-        url: player.url
+        url: player.url,
+        coverImageUrl
       });
     } catch (captureError) {
       return NextResponse.json(

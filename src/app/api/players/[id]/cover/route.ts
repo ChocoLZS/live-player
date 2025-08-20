@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb, players } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { eq } from 'drizzle-orm';
+import { uploadImageToR2, generateCoverImageKey, getR2PublicUrl, deleteImageFromR2 } from '@/lib/r2';
+import { cache, CACHE_KEYS } from '@/lib/cache';
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -55,26 +57,49 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     const db = getDb();
     
-    // Update player with cover image binary data
-    const [player] = await db.update(players)
-      .set({
-        coverImage: imageData,
-        updatedAt: new Date().toISOString()
-      })
-      .where(eq(players.id, playerId))
-      .returning();
-
-    if (!player) {
+    // Get current player to check for existing R2 image
+    const [currentPlayer] = await db.select().from(players).where(eq(players.id, playerId)).limit(1);
+    
+    if (!currentPlayer) {
       return NextResponse.json(
         { error: 'Player not found' },
         { status: 404 }
       );
     }
 
+    // Delete old R2 image if exists
+    if (currentPlayer.coverImageR2Key) {
+      try {
+        await deleteImageFromR2(currentPlayer.coverImageR2Key);
+      } catch (error) {
+        console.warn('Failed to delete old R2 image:', error);
+      }
+    }
+
+    // Generate new R2 key and upload
+    const r2Key = generateCoverImageKey(currentPlayer.pId);
+    await uploadImageToR2(r2Key, imageData, file.type);
+
+    // Update player with R2 key
+    const [player] = await db.update(players)
+      .set({
+        coverImageR2Key: r2Key,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(players.id, playerId))
+      .returning();
+
+    // Clear cache
+    cache.delete(CACHE_KEYS.PLAYER_LIST);
+    cache.delete(CACHE_KEYS.PLAYER(currentPlayer.pId));
+
+    const coverImageUrl = getR2PublicUrl(r2Key);
+
     return NextResponse.json({ 
       message: 'Cover image uploaded successfully',
       fileSize: file.size,
-      fileType: file.type 
+      fileType: file.type,
+      coverImageUrl
     });
   } catch (error) {
     console.error('Error uploading cover image:', error);
@@ -99,24 +124,29 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const db = getDb();
     const [player] = await db.select({ 
-      coverImage: players.coverImage 
+      coverImageR2Key: players.coverImageR2Key,
+      coverUrl: players.coverUrl 
     }).from(players).where(eq(players.id, playerId)).limit(1);
 
-    if (!player || !player.coverImage) {
+    if (!player) {
+      return NextResponse.json(
+        { error: 'Player not found' },
+        { status: 404 }
+      );
+    }
+
+    // Redirect to R2 image or return URL info
+    if (player.coverImageR2Key) {
+      const imageUrl = getR2PublicUrl(player.coverImageR2Key);
+      return NextResponse.redirect(imageUrl);
+    } else if (player.coverUrl) {
+      return NextResponse.redirect(player.coverUrl);
+    } else {
       return NextResponse.json(
         { error: 'Cover image not found' },
         { status: 404 }
       );
     }
-
-    // Return the binary data as image response
-    return new NextResponse(Buffer.from(player.coverImage as ArrayBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/jpeg', // Default to JPEG, could be enhanced to detect type
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
-      },
-    });
   } catch (error) {
     console.error('Error retrieving cover image:', error);
     return NextResponse.json(

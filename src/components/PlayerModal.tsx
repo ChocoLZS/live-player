@@ -1,26 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Player } from '@/lib/db';
+import type { Player, PlayerWithImageUrl } from '@/lib/db';
 import { captureCoverImage, captureMultipleFrames, type CoverFrame } from '@/lib/videoCapture';
 import CoverSelector from './CoverSelector';
+import toast from 'react-hot-toast';
 
 interface PlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (player: Omit<Player, 'id' | 'createdAt' | 'updatedAt' | 'coverImage'>) => void;
+  onSubmit: (player: Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl'>) => void;
   player?: Player | null;
   loading?: boolean;
 }
 
 export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading }: PlayerModalProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl'>>({
     name: '',
     pId: '',
     description: '',
     url: '',
     coverUrl: '',
-    announcement: ''
+    announcement: '',
+    coverImageR2Key: ''
   });
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -30,6 +32,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
   const [showCoverSelector, setShowCoverSelector] = useState(false);
   const [coverFrames, setCoverFrames] = useState<CoverFrame[]>([]);
   const [loadingFrames, setLoadingFrames] = useState(false);
+  
 
   useEffect(() => {
     if (isOpen) {
@@ -40,7 +43,8 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
           description: player.description || '',
           url: player.url,
           coverUrl: player.coverUrl || '',
-          announcement: player.announcement || ''
+          announcement: player.announcement || '',
+          coverImageR2Key: player.coverImageR2Key || ''
         });
       } else {
         setFormData({
@@ -49,7 +53,8 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
           description: '',
           url: '',
           coverUrl: '',
-          announcement: ''
+          announcement: '',
+          coverImageR2Key: ''
         });
       }
     } else {
@@ -89,37 +94,40 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
   };
 
   const handleCoverUpload = async () => {
-    if (!coverFile || !player?.id) return;
+    if (!coverFile || !formData.pId) return;
     
     setUploadingCover(true);
     try {
-      const formData = new FormData();
-      formData.append('cover', coverFile);
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', coverFile);
+      uploadFormData.append('playerId', formData.pId);
       
-      const response = await fetch(`/api/players/${player.id}/cover`, {
+      const response = await fetch('/api/upload/cover', {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
       });
       
       if (response.ok) {
-        alert('Cover image uploaded successfully!');
+        const result = await response.json() as { key: string; url: string };
+        setFormData(prev => ({ ...prev, coverImageR2Key: result.key }));
+        toast.success('Cover image uploaded successfully!');
         setCoverFile(null);
         // Reset file input
         const fileInput = document.getElementById('coverFile') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || 'Failed to upload cover image');
+        toast.error((error as { error: string }).error || 'Failed to upload cover image');
       }
     } catch (error) {
       console.error('Error uploading cover:', error);
-      alert('Failed to upload cover image');
+      toast.error('Failed to upload cover image');
     }
     setUploadingCover(false);
   };
 
   const handleAutoCapture = async () => {
-    if (!player?.id) return;
+    if (!formData.pId) return;
     
     let imageBlob: Blob;
     
@@ -129,14 +137,14 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
         const response = await fetch(previewImage);
         imageBlob = await response.blob();
       } catch (error) {
-        alert('Unable to use preview image');
+        toast.error('Unable to use preview image');
         return;
       }
     } else {
       // If no preview, capture directly from video
-      const videoUrl = formData.url || player.url;
+      const videoUrl = formData.url;
       if (!videoUrl) {
-        alert('Please enter video URL first');
+        toast.error('Please enter video URL first');
         return;
       }
       
@@ -144,32 +152,35 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
         imageBlob = await captureCoverImage(videoUrl);
       } catch (error) {
         console.error('Error capturing cover:', error);
-        alert('Cover capture failed, please check if the video URL is correct');
+        toast.error('Cover capture failed, please check if the video URL is correct');
         return;
       }
     }
     
     setCapturingCover(true);
     try {
-      // Upload the captured image
-      const formDataToSend = new FormData();
-      formDataToSend.append('cover', imageBlob, 'cover.jpg');
+      // Upload the captured image to R2
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', imageBlob, 'cover.jpg');
+      uploadFormData.append('playerId', formData.pId);
       
-      const response = await fetch(`/api/players/${player.id}/cover`, {
+      const response = await fetch('/api/upload/cover', {
         method: 'POST',
-        body: formDataToSend,
+        body: uploadFormData,
       });
       
       if (response.ok) {
-        alert('Cover uploaded successfully!');
+        const result = await response.json() as { key: string; url: string };
+        setFormData(prev => ({ ...prev, coverImageR2Key: result.key }));
+        toast.success('Cover uploaded successfully!');
         setPreviewImage(null); // Clear preview image
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || 'Cover upload failed');
+        toast.error((error as { error: string }).error || 'Cover upload failed');
       }
     } catch (error) {
       console.error('Error uploading cover:', error);
-      alert('Cover upload failed');
+      toast.error('Cover upload failed');
     }
     setCapturingCover(false);
   };
@@ -178,7 +189,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
     // Use URL from form data, or player URL if not available
     const videoUrl = formData.url || player?.url;
     if (!videoUrl) {
-      alert('Please enter video URL first');
+      toast.error('Please enter video URL first');
       return;
     }
     
@@ -200,7 +211,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
         errorMessage = 'HLS stream preview failed, please check:\n1. Is the URL correct\n2. Is the video stream accessible\n3. Are there CORS restrictions';
       }
       
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
     setPreviewingCover(false);
   };
@@ -208,7 +219,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
   const handleMultiFrameCapture = async () => {
     const videoUrl = formData.url || player?.url;
     if (!videoUrl) {
-      alert('Please enter video URL first');
+      toast.error('Please enter video URL first');
       return;
     }
     
@@ -221,7 +232,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
       setCoverFrames(frames);
     } catch (error) {
       console.error('Error capturing multiple frames:', error);
-      alert('Batch capture failed, please check if the video URL is correct');
+      toast.error('Batch capture failed, please check if the video URL is correct');
       setShowCoverSelector(false);
     }
     
@@ -229,21 +240,24 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
   };
 
   const handleFrameSelect = async (selectedFrame: CoverFrame) => {
-    if (!player?.id) return;
+    if (!formData.pId) return;
     
     setCapturingCover(true);
     try {
-      // Upload selected frame
-      const formDataToSend = new FormData();
-      formDataToSend.append('cover', selectedFrame.blob, 'cover.jpg');
+      // Upload selected frame to R2
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', selectedFrame.blob, 'cover.jpg');
+      uploadFormData.append('playerId', formData.pId);
       
-      const response = await fetch(`/api/players/${player.id}/cover`, {
+      const response = await fetch('/api/upload/cover', {
         method: 'POST',
-        body: formDataToSend,
+        body: uploadFormData,
       });
       
       if (response.ok) {
-        alert('Cover uploaded successfully!');
+        const result = await response.json() as { key: string; url: string };
+        setFormData(prev => ({ ...prev, coverImageR2Key: result.key }));
+        toast.success('Cover uploaded successfully!');
         setShowCoverSelector(false);
         // Clean up all frame URLs
         coverFrames.forEach(frame => {
@@ -254,11 +268,11 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
         setCoverFrames([]);
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || 'Cover upload failed');
+        toast.error((error as { error: string }).error || 'Cover upload failed');
       }
     } catch (error) {
       console.error('Error uploading selected frame:', error);
-      alert('Cover upload failed');
+      toast.error('Cover upload failed');
     }
     setCapturingCover(false);
   };
@@ -365,7 +379,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 type="url"
                 id="coverUrl"
                 name="coverUrl"
-                value={formData.coverUrl}
+                value={formData.coverUrl || ''}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="https://example.com/cover.jpg"
@@ -425,24 +439,33 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                       </div>
                     )}
                     
-                    {previewImage && (
-                      <div className="space-y-2">
-                        <div className="text-sm text-gray-700">Capture Preview:</div>
-                        <img 
-                          src={previewImage} 
-                          alt="Cover preview" 
-                          className="w-full max-w-xs h-auto border rounded-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAutoCapture}
-                          disabled={capturingCover}
-                          className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {capturingCover ? 'Uploading...' : 'Use This Cover'}
-                        </button>
-                      </div>
-                    )}
+                    {(() => {
+                      const currentCoverSrc = formData.coverImageR2Key ? `/api/images/${formData.coverImageR2Key}` : formData.coverUrl;
+                      const displayImage = previewImage || currentCoverSrc;
+                      
+                      return displayImage && (
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-700">
+                            {previewImage ? 'Capture Preview:' : 'Current Cover:'}
+                          </div>
+                          <img 
+                            src={displayImage} 
+                            alt={previewImage ? 'Cover preview' : 'Current cover'} 
+                            className="w-full max-w-xs h-auto border rounded-md"
+                          />
+                          {previewImage && (
+                            <button
+                              type="button"
+                              onClick={handleAutoCapture}
+                              disabled={capturingCover}
+                              className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {capturingCover ? 'Uploading...' : 'Use This Cover'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -456,7 +479,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 id="description"
                 name="description"
                 rows={3}
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter player description"
@@ -471,7 +494,7 @@ export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading
                 id="announcement"
                 name="announcement"
                 rows={2}
-                value={formData.announcement}
+                value={formData.announcement || ''}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter announcement"

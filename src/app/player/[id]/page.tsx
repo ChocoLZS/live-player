@@ -1,15 +1,16 @@
 import { notFound } from 'next/navigation';
-import { getDb, players, type Player } from '@/lib/db';
+import { getDb, players, PlayerWithImageUrl, type Player } from '@/lib/db';
 import PlayerComponent from '@/components/Player';
 import { eq } from 'drizzle-orm';
 import { cache as memoryCache, CACHE_KEYS, CACHE_TTL } from '@/lib/cache';
 import { cache } from 'react';
+import { getR2PublicUrl } from '@/lib/r2';
 
 interface PlayerPageProps {
   params: Promise<{ id: string }>;
 }
 
-const getPlayer = cache(async (pId: string): Promise<Player | null> => {
+const getPlayer = cache(async (pId: string): Promise<PlayerWithImageUrl | null> => {
   try {
     const player = await memoryCache.getOrFetch(
       CACHE_KEYS.PLAYER(pId),
@@ -20,8 +21,13 @@ const getPlayer = cache(async (pId: string): Promise<Player | null> => {
       },
       CACHE_TTL.PLAYER
     );
-    
-    return player;
+    return {
+          ...player,
+          // Use R2 URL if available, fallback to coverUrl
+          coverImageUrl: player.coverImageR2Key 
+            ? getR2PublicUrl(player.coverImageR2Key)
+            : player.coverUrl || ''
+        };
   } catch (error) {
     console.error('Error fetching player:', error);
     return null;

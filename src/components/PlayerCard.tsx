@@ -2,31 +2,18 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/middleware/WithAuth';
-import type { Player } from '@/lib/db';
+import type { PlayerWithImageUrl } from '@/lib/db';
 
 interface PlayerCardProps {
-  player: Player;
-  onEdit?: (player: Player) => void;
-  onDelete?: (player: Player) => void;
+  player: PlayerWithImageUrl;
+  onEdit?: (player: PlayerWithImageUrl) => void;
+  onDelete?: (player: PlayerWithImageUrl) => void;
 }
 
 export default function PlayerCard({ player, onEdit, onDelete }: PlayerCardProps) {
   const { user } = useAuth();
-  
-  // Determine cover image source - convert binary data to base64 on client side
-  const getCoverImageSrc = () => {
-    if (player.coverImage) {
-      // Handle both ArrayBuffer (from SSR) and Array (from API)
-      const uint8Array = Array.isArray(player.coverImage) 
-        ? new Uint8Array(player.coverImage)
-        : new Uint8Array(player.coverImage as ArrayBuffer);
-      const base64 = btoa(String.fromCharCode(...uint8Array));
-      return `data:image/jpeg;base64,${base64}`;
-    }
-    return player.coverUrl || null;
-  };
-  
-  const coverImageSrc = getCoverImageSrc();
+
+  const coverImageSrc = player.coverImageUrl;
 
   const handleEdit = (e: React.MouseEvent) => {
     e.preventDefault();

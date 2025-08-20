@@ -7,13 +7,14 @@ import AddPlayerButton from '@/components/AddPlayerButton';
 import PlayerCard from '@/components/PlayerCard';
 import PlayerModal from '@/components/PlayerModal';
 import { useAuth } from '@/middleware/WithAuth';
-import type { Player } from '@/lib/db';
+import type { Player, PlayerWithImageUrl } from '@/lib/db';
+import toast from 'react-hot-toast';
 
 export default function Home() {
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [players, setPlayers] = useState<PlayerWithImageUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<PlayerWithImageUrl | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
 
@@ -21,7 +22,7 @@ export default function Home() {
     try {
       const response = await fetch('/api/players');
       if (response.ok) {
-        const data = await response.json() as Player[];
+        const data = await response.json() as PlayerWithImageUrl[];
         setPlayers(data);
       }
     } catch (error) {
@@ -40,12 +41,12 @@ export default function Home() {
     setModalOpen(true);
   };
 
-  const handleEditPlayer = (player: Player) => {
+  const handleEditPlayer = (player: PlayerWithImageUrl) => {
     setEditingPlayer(player);
     setModalOpen(true);
   };
 
-  const handleDeletePlayer = async (player: Player) => {
+  const handleDeletePlayer = async (player: PlayerWithImageUrl) => {
     try {
       const response = await fetch(`/api/players/${player.id}`, {
         method: 'DELETE',
@@ -56,15 +57,15 @@ export default function Home() {
         setPlayers(prev => prev.filter(p => p.id !== player.id));
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || 'Delete failed');
+        toast.error((error as { error: string }).error || 'Delete failed');
       }
     } catch (error) {
       console.error('Error deleting player:', error);
-      alert('Delete failed');
+      toast.error('Delete failed');
     }
   };
 
-  const handleSubmitPlayer = async (playerData: Omit<Player, 'id' | 'createdAt' | 'updatedAt' | 'coverImage'>) => {
+  const handleSubmitPlayer = async (playerData: Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl'>) => {
     setSubmitting(true);
     
     try {
@@ -82,7 +83,7 @@ export default function Home() {
       });
 
       if (response.ok) {
-        const savedPlayer = await response.json() as Player;
+        const savedPlayer = await response.json() as PlayerWithImageUrl;
         
         if (isEditing) {
           setPlayers(prev => prev.map(p => p.id === editingPlayer.id ? savedPlayer : p));
@@ -94,11 +95,11 @@ export default function Home() {
         setEditingPlayer(null);
       } else {
         const error = await response.json();
-        alert((error as { error: string }).error || (isEditing ? 'Update failed' : 'Create failed'));
+        toast.error((error as { error: string }).error || (isEditing ? 'Update failed' : 'Create failed'));
       }
     } catch (error) {
       console.error('Error submitting player:', error);
-      alert(editingPlayer ? 'Update failed' : 'Create failed');
+      toast.error(editingPlayer ? 'Update failed' : 'Create failed');
     } finally {
       setSubmitting(false);
     }
@@ -123,18 +124,13 @@ export default function Home() {
             楽しみましょう
           </h1>
           <AdminControls />
-          {user?.role === 'admin' && (
-            <div className="flex justify-center mb-8">
-              <AddPlayerButton onClick={handleAddPlayer} />
-            </div>
-          )}
         </div>
 
         {players.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg mb-4">No players found</p>
             {user?.role === 'admin' && (
-              <AddPlayerButton onClick={handleAddPlayer} />
+              <AddPlayerButton onClick={handleAddPlayer} variant="card" />
             )}
           </div>
         ) : (

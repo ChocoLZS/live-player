@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const players = sqliteTable('players', {
@@ -8,7 +8,7 @@ export const players = sqliteTable('players', {
   description: text('description'),
   url: text('url').notNull(),
   coverUrl: text('cover_url'),
-  coverImage: blob('cover_image'),
+  coverImageR2Key: text('cover_image_r2_key'), // R2 storage key
   announcement: text('announcement'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
@@ -16,4 +16,3 @@ export const players = sqliteTable('players', {
 
 export type Player = typeof players.$inferSelect;
 export type NewPlayer = typeof players.$inferInsert;
-export type PlayerWithBase64Image = Player & { coverImageBase64: string | null };

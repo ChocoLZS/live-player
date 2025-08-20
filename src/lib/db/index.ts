@@ -17,3 +17,4 @@ export const getDbAsync = async () => {
 
 // Export schema types
 export * from './schema';
+export type PlayerWithImageUrl = schema.Player & { coverImageUrl: string };

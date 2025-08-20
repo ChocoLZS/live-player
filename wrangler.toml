@@ -10,6 +10,11 @@ binding = "DB"
 database_name = "live-player"
 database_id = "e924cbbd-2875-43a6-a24d-e95636c79481"
 
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "img"
+preview_bucket_name = "img"
+
 # [env.production]
 # vars = { NODE_ENV = "production" }
 

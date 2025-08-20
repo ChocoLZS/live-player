@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, players } from '@/lib/db';
+import { getDb, Player, players } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { eq, and, ne } from 'drizzle-orm';
 import { cache, CACHE_KEYS } from '@/lib/cache';
+import { getR2, getR2PublicUrl } from '@/lib/r2';
 
 export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -15,7 +16,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       );
     }
 
-    const { name, pId, description, url, coverUrl, announcement } = await request.json() as any;
+    const modified_player = await request.json() as Player;
+    const { name, pId, description, url, coverUrl, announcement, coverImageR2Key } = modified_player;
     const params = await context.params;
     const playerId = parseInt(params.id);
 
@@ -50,12 +52,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
     const [player] = await db.update(players)
       .set({
-        name,
-        pId,
-        description: description || null,
-        url,
-        coverUrl: coverUrl || null,
-        announcement: announcement || null,
+        ...modified_player,
         updatedAt: new Date().toISOString()
       })
       .where(eq(players.id, playerId))
@@ -63,13 +60,16 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
     cache.delete(CACHE_KEYS.PLAYER_LIST);
     cache.delete(CACHE_KEYS.PLAYER(pId));
-    // Convert binary coverImage to array for JSON serialization
-    const playerWithArrayImage = {
+    // Add coverImageUrl for frontend use
+    const playerWithImageUrl = {
       ...player,
-      coverImage: player.coverImage ? Array.from(new Uint8Array(player.coverImage as ArrayBuffer)) : null
+      // Use R2 URL if available, fallback to coverUrl
+      coverImageUrl: player.coverImageR2Key 
+        ? getR2PublicUrl(player.coverImageR2Key)
+        : player.coverUrl
     };
 
-    return NextResponse.json(playerWithArrayImage);
+    return NextResponse.json(playerWithImageUrl);
   } catch (error) {
     console.error('Error updating player:', error);
     return NextResponse.json(
@@ -109,6 +109,10 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     if (existingPlayer) {
       cache.delete(CACHE_KEYS.PLAYER_LIST);
       cache.delete(CACHE_KEYS.PLAYER(existingPlayer.pId));
+    }
+    if (existingPlayer?.coverImageR2Key) {
+      const r2 = getR2();
+      r2.delete(existingPlayer.coverImageR2Key);
     }
 
     return NextResponse.json({ message: 'Player deleted successfully' });

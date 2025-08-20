@@ -29,7 +29,8 @@
     "jsonwebtoken": "^9.0.2",
     "next": "15.3.5",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250810.0",

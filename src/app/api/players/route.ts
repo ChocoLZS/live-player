@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, players } from '@/lib/db';
+import { getDb, Player, players } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { desc, eq } from 'drizzle-orm';
 import { cache, CACHE_KEYS, CACHE_TTL } from '@/lib/cache';
+import { getR2PublicUrl } from '@/lib/r2';
 
 export async function GET() {
   try {
@@ -15,13 +16,16 @@ export async function GET() {
       CACHE_TTL.PLAYER_LIST
     );
     
-    // Convert binary coverImage to array for JSON serialization
-    const playersWithArrayImages = playerList.map(player => ({
+    // Add coverImageUrl for frontend use
+    const playersWithImageUrls = playerList.map(player => ({
       ...player,
-      coverImage: player.coverImage ? Array.from(new Uint8Array(player.coverImage as ArrayBuffer)) : null
+      // Use R2 URL if available, fallback to coverUrl
+      coverImageUrl: player.coverImageR2Key 
+        ? getR2PublicUrl(player.coverImageR2Key)
+        : player.coverUrl
     }));
     
-    return NextResponse.json(playersWithArrayImages);
+    return NextResponse.json(playersWithImageUrls);
   } catch (error) {
     console.error('Error fetching players:', error);
     return NextResponse.json(
@@ -42,7 +46,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, pId, description, url, coverUrl, announcement } = await request.json() as any;
+    const new_player = await request.json() as Player;
+    const { name, pId, description, url, coverUrl, announcement, coverImageR2Key } = new_player;
 
     if (!name || !pId || !url) {
       return NextResponse.json(
@@ -64,22 +69,20 @@ export async function POST(request: NextRequest) {
     }
 
     const [player] = await db.insert(players).values({
-      name,
-      pId,
-      description: description || null,
-      url,
-      coverUrl: coverUrl || null,
-      announcement: announcement || null,
-      updatedAt: new Date().toISOString()
+      ...new_player,
+      updatedAt: new Date().toISOString(),
     }).returning();
 
-    // Convert binary coverImage to array for JSON serialization
-    const playerWithArrayImage = {
+    // Add coverImageUrl for frontend use
+    const playerWithImageUrl = {
       ...player,
-      coverImage: player.coverImage ? Array.from(new Uint8Array(player.coverImage as ArrayBuffer)) : null
+      // Use R2 URL if available, fallback to coverUrl
+      coverImageUrl: player.coverImageR2Key 
+        ? getR2PublicUrl(player.coverImageR2Key)
+        : player.coverUrl
     };
 
-    return NextResponse.json(playerWithArrayImage);
+    return NextResponse.json(playerWithImageUrl);
   } catch (error) {
     console.error('Error creating player:', error);
     return NextResponse.json(
