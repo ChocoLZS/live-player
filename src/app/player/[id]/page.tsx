@@ -12,15 +12,17 @@ interface PlayerPageProps {
 
 const getPlayer = cache(async (pId: string): Promise<PlayerWithImageUrl | null> => {
   try {
-    const player = await memoryCache.getOrFetch(
-      CACHE_KEYS.PLAYER(pId),
-      async () => {
-        const db = getDb();
-        const [player] = await db.select().from(players).where(eq(players.pId, pId)).limit(1);
-        return player || null;
-      },
-      CACHE_TTL.PLAYER
-    );
+    // const player = await memoryCache.getOrFetch(
+    //   CACHE_KEYS.PLAYER(pId),
+    //   async () => {
+    //     const db = getDb();
+    //     const [player] = await db.select().from(players).where(eq(players.pId, pId)).limit(1);
+    //     return player || null;
+    //   },
+    //   CACHE_TTL.PLAYER
+    // );
+    const db = getDb();
+    const [player] = await db.select().from(players).where(eq(players.pId, pId)).limit(1);
     return {
           ...player,
           // Use R2 URL if available, fallback to coverUrl

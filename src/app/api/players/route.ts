@@ -7,15 +7,17 @@ import { getR2PublicUrl } from '@/lib/r2';
 
 export async function GET() {
   try {
-    const playerList = await cache.getOrFetch(
-      CACHE_KEYS.PLAYER_LIST,
-      async () => {
-        const db = getDb();
-        return await db.select().from(players).orderBy(desc(players.updatedAt));
-      },
-      CACHE_TTL.PLAYER_LIST
-    );
-    
+    // const playerList = await cache.getOrFetch(
+    //   CACHE_KEYS.PLAYER_LIST,
+    //   async () => {
+    //     const db = getDb();
+    //     return await db.select().from(players).orderBy(desc(players.updatedAt));
+    //   },
+    //   CACHE_TTL.PLAYER_LIST
+    // );
+    const db = getDb();
+    const playerList =  await db.select().from(players).orderBy(desc(players.updatedAt));
+
     // Add coverImageUrl for frontend use
     const playersWithImageUrls = playerList.map(player => ({
       ...player,
