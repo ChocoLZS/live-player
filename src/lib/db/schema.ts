@@ -10,6 +10,7 @@ export const players = sqliteTable('players', {
   coverUrl: text('cover_url'),
   coverImageR2Key: text('cover_image_r2_key'), // R2 storage key
   announcement: text('announcement'),
+  isLive: integer('is_live', { mode: 'boolean' }).default(false).notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });

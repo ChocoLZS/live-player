@@ -7,7 +7,7 @@ import type { PlayerWithImageUrl } from '@/lib/db';
 import toast from 'react-hot-toast';
 
 interface PlayerCardProps {
-  player: PlayerWithImageUrl;
+  player: PlayerWithImageUrl & { isLive?: boolean };
   onEdit?: (player: PlayerWithImageUrl) => void;
   onDelete?: (player: PlayerWithImageUrl) => void;
   onCopy?: () => void;
@@ -16,6 +16,8 @@ interface PlayerCardProps {
 export default function PlayerCard({ player, onEdit, onDelete, onCopy }: PlayerCardProps) {
   const { user } = useAuth();
   const [copying, setCopying] = useState(false);
+  const [isLive, setIsLive] = useState(player.isLive || false);
+  const [isToggling, setIsToggling] = useState(false);
 
   const coverImageSrc = player.coverImageUrl;
 
@@ -34,6 +36,41 @@ export default function PlayerCard({ player, onEdit, onDelete, onCopy }: PlayerC
     }
     
     onDelete?.(player);
+  };
+
+  const handleToggleLive = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isToggling) return;
+    
+    setIsToggling(true);
+    try {
+      const response = await fetch(`/api/players/${player.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...player,
+          isLive: !isLive,
+        }),
+      });
+
+      if (response.ok) {
+        setIsLive(!isLive);
+        toast.success(`Player is now ${!isLive ? 'Live' : 'Offline'}`);
+      } else {
+        const error = await response.json() as { error: string };
+        console.error('Failed to toggle live status:', error);
+        toast.error('Toggle failed: ' + (error.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Failed to toggle live status:', err);
+      toast.error('Toggle failed: Network error');
+    } finally {
+      setIsToggling(false);
+    }
   };
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -91,41 +128,84 @@ export default function PlayerCard({ player, onEdit, onDelete, onCopy }: PlayerC
                 alt={player.name}
                 className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
               />
-              {user?.role === 'admin' && (
-                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={handleCopy}
-                    disabled={copying}
-                    className={`p-1.5 text-white rounded-full transition-colors shadow-lg ${
-                      copying 
-                        ? 'bg-gray-600 cursor-not-allowed' 
-                        : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                    title="Copy Player"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleEdit}
-                    className="p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg"
-                    title="Edit"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg"
-                    title="Delete"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+              {/* Live Status Indicator - Top Left */}
+              <div className="absolute top-2 left-2">
+                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium shadow-lg ${
+                  isLive 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-gray-800 text-gray-300'
+                }`}>
+                  {/* Status indicator dot with radar effect */}
+                  <div className="relative">
+                    {isLive && (
+                      <>
+                        {/* Radar animation rings only around the dot */}
+                        <div className="absolute inset-0 w-2 h-2 rounded-full bg-white radar-ping"></div>
+                        <div className="absolute inset-0 w-2 h-2 rounded-full bg-white radar-ping" style={{animationDelay: '1s'}}></div>
+                      </>
+                    )}
+                    <div className={`relative w-2 h-2 rounded-full ${
+                      isLive 
+                        ? 'bg-white pulse-dot' 
+                        : 'bg-gray-500'
+                    }`}></div>
+                  </div>
+                  {isLive ? 'Live' : 'Offline'}
                 </div>
+              </div>
+              {user?.role === 'admin' && (
+                <>
+                  {/* Live Toggle Switch - Bottom Right */}
+                  <div className="absolute bottom-2 right-2">
+                    <button
+                      onClick={handleToggleLive}
+                      disabled={isToggling}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shadow-lg ${
+                        isLive ? 'bg-red-600' : 'bg-gray-400'
+                      } ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title={`Toggle Live Status (Currently ${isLive ? 'Live' : 'Offline'})`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        isLive ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                  {/* Admin Controls - Top Right */}
+                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={handleCopy}
+                      disabled={copying}
+                      className={`p-1.5 text-white rounded-full transition-colors shadow-lg ${
+                        copying 
+                          ? 'bg-gray-600 cursor-not-allowed' 
+                          : 'bg-green-600 hover:bg-green-700'
+                      }`}
+                      title="Copy Player"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </button>
+                    <button
+                      onClick={handleEdit}
+                      className="p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg"
+                      title="Edit"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                      title="Delete"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}

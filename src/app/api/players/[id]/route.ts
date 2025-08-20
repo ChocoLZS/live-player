@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     }
 
     const modified_player = await request.json() as Player;
-    const { name, pId, description, url, coverUrl, announcement, coverImageR2Key } = modified_player;
+    const { name, pId, url } = modified_player;
     const params = await context.params;
     const playerId = parseInt(params.id);
 

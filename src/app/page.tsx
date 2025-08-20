@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import AdminControls from '@/components/AdminControls';
 import AddPlayerButton from '@/components/AddPlayerButton';
 import PlayerCard from '@/components/PlayerCard';
-import PlayerModal from '@/components/PlayerModal';
+import PlayerModal, { PlayerFormModel } from '@/components/PlayerModal';
 import { useAuth } from '@/middleware/WithAuth';
 import type { Player, PlayerWithImageUrl } from '@/lib/db';
 import toast from 'react-hot-toast';
@@ -65,7 +65,7 @@ export default function Home() {
     }
   };
 
-  const handleSubmitPlayer = async (playerData: Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl'>) => {
+  const handleSubmitPlayer = async (playerData: PlayerFormModel) => {
     setSubmitting(true);
     
     try {

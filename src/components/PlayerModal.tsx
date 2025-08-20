@@ -6,16 +6,18 @@ import { captureCoverImage, captureMultipleFrames, type CoverFrame } from '@/lib
 import CoverSelector from './CoverSelector';
 import toast from 'react-hot-toast';
 
+export type PlayerFormModel = Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl' | 'isLive'>;
+
 interface PlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (player: Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl'>) => void;
+  onSubmit: (player: PlayerFormModel) => void;
   player?: Player | null;
   loading?: boolean;
 }
 
 export default function PlayerModal({ isOpen, onClose, onSubmit, player, loading }: PlayerModalProps) {
-  const [formData, setFormData] = useState<Omit<PlayerWithImageUrl, 'id' | 'createdAt' | 'updatedAt' | 'coverImageUrl'>>({
+  const [formData, setFormData] = useState<PlayerFormModel>({
     name: '',
     pId: '',
     description: '',
