@@ -1,17 +1,21 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useAuth } from '@/middleware/WithAuth';
 import type { PlayerWithImageUrl } from '@/lib/db';
+import toast from 'react-hot-toast';
 
 interface PlayerCardProps {
   player: PlayerWithImageUrl;
   onEdit?: (player: PlayerWithImageUrl) => void;
   onDelete?: (player: PlayerWithImageUrl) => void;
+  onCopy?: () => void;
 }
 
-export default function PlayerCard({ player, onEdit, onDelete }: PlayerCardProps) {
+export default function PlayerCard({ player, onEdit, onDelete, onCopy }: PlayerCardProps) {
   const { user } = useAuth();
+  const [copying, setCopying] = useState(false);
 
   const coverImageSrc = player.coverImageUrl;
 
@@ -32,6 +36,50 @@ export default function PlayerCard({ player, onEdit, onDelete }: PlayerCardProps
     onDelete?.(player);
   };
 
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (copying) return;
+    
+    setCopying(true);
+    try {
+      // Create a copy of the player with a new pId
+      const timestamp = Date.now();
+      const newPlayer = {
+        name: `${player.name} (Copy)`,
+        pId: `${player.pId}_copy_${timestamp}`,
+        description: player.description,
+        url: player.url,
+        coverUrl: player.coverUrl,
+        coverImageR2Key: player.coverImageR2Key,
+        announcement: player.announcement,
+      };
+
+      const response = await fetch('/api/players', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newPlayer),
+      });
+
+      if (response.ok) {
+        toast.success('Player copied successfully!');
+        onCopy?.(); // Notify parent to refresh player list
+      } else {
+        const error = await response.json() as { error: string };
+        console.error('Failed to copy player:', error);
+        toast.error('Copy failed: ' + (error.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Failed to copy player:', err);
+      toast.error('Copy failed: Network error');
+    } finally {
+      setCopying(false);
+    }
+  };
+
   return (
     <div className="group relative">
       <Link href={`/player/${player.pId}`} className="block">
@@ -45,6 +93,20 @@ export default function PlayerCard({ player, onEdit, onDelete }: PlayerCardProps
               />
               {user?.role === 'admin' && (
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={handleCopy}
+                    disabled={copying}
+                    className={`p-1.5 text-white rounded-full transition-colors shadow-lg ${
+                      copying 
+                        ? 'bg-gray-600 cursor-not-allowed' 
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                    title="Copy Player"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                   <button
                     onClick={handleEdit}
                     className="p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-lg"
@@ -85,6 +147,17 @@ export default function PlayerCard({ player, onEdit, onDelete }: PlayerCardProps
             )}
             {user?.role === 'admin' && !coverImageSrc && (
               <div className="flex gap-2 mt-3">
+                <button
+                  onClick={handleCopy}
+                  disabled={copying}
+                  className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+                    copying
+                      ? 'text-gray-400 bg-gray-50 border border-gray-200 cursor-not-allowed'
+                      : 'text-green-600 bg-green-50 border border-green-200 hover:bg-green-100'
+                  }`}
+                >
+                  {copying ? 'Copying...' : 'Copy'}
+                </button>
                 <button
                   onClick={handleEdit}
                   className="flex-1 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors"

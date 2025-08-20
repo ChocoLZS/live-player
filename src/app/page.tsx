@@ -141,6 +141,7 @@ export default function Home() {
                 player={player}
                 onEdit={handleEditPlayer}
                 onDelete={handleDeletePlayer}
+                onCopy={fetchPlayers}
               />
             ))}
             {user?.role === 'admin' && (
