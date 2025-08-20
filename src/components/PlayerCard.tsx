@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState } from 'react';
 import { useAuth } from '@/middleware/WithAuth';
 import type { PlayerWithImageUrl } from '@/lib/db';
@@ -86,12 +85,11 @@ export default function PlayerCard({ player, onEdit, onDelete, onCopy }: PlayerC
       <Link href={`/player/${player.pId}`} className="block">
         <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
           {coverImageSrc && (
-            <div className="aspect-w-16 aspect-h-9 relative h-48">
-              <Image
+            <div className="aspect-w-16 aspect-h-9 relative">
+              <img
                 src={coverImageSrc}
                 alt={player.name}
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
               />
               {user?.role === 'admin' && (
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
